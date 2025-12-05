@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, Users, Shield, User, Eye, EyeOff, AlertCircle, RefreshCw, Copy, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Shield, User, Eye, EyeOff, AlertCircle, RefreshCw, Copy, Check, X } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import usePagination from '../hooks/usePagination';
 import { validateAction, adminOverride } from '../utils/subscriptionManager';

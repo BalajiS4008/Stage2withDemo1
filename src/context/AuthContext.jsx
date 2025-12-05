@@ -11,6 +11,7 @@ import { getUserByFirebaseUid, getUserByUsername, addUser, updateUser } from '..
 import { migrateLocalStorageToDexie } from '../db/migrationService';
 import { loadData } from '../utils/dataManager';
 import { registerDevice, getCurrentDeviceInfo } from '../utils/subscriptionManager';
+import { initializeDefaultUser, initializeDefaultData } from '../utils/initializeDefaultUser';
 
 const AuthContext = createContext(null);
 
@@ -29,21 +30,29 @@ export const AuthProvider = ({ children }) => {
   const [migrationCompleted, setMigrationCompleted] = useState(false);
 
   useEffect(() => {
-    // Run migration on first load
-    const runMigration = async () => {
+    // Run migration and initialization on first load
+    const runInitialization = async () => {
       try {
+        // Initialize default data structure in localStorage
+        initializeDefaultData();
+
+        // Run migration from localStorage to Dexie
         const result = await migrateLocalStorageToDexie();
         if (result.success) {
           console.log('✅ Migration check completed');
-          setMigrationCompleted(true);
         }
+
+        // Initialize default admin user if none exists
+        await initializeDefaultUser();
+
+        setMigrationCompleted(true);
       } catch (error) {
-        console.error('Migration error:', error);
-        setMigrationCompleted(true); // Continue even if migration fails
+        console.error('❌ Initialization error:', error);
+        setMigrationCompleted(true); // Continue even if initialization fails
       }
     };
 
-    runMigration();
+    runInitialization();
 
     // Listen to Firebase auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
