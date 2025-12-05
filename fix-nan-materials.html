@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix NaN Material IDs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.delete {
+            background: #f44336;
+        }
+        button.delete:hover {
+            background: #da190b;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .info {
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix NaN Material IDs in Stock Transactions</h1>
+        <p>This tool will help you fix stock transactions that have invalid material IDs (NaN).</p>
+
+        <button onclick="checkIssues()">1. Check for Issues</button>
+        <button class="delete" onclick="deleteInvalidTransactions()">2. Delete Invalid Transactions</button>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function checkIssues() {
+            output.innerHTML = '';
+            log('🔍 Opening IndexedDB...', 'info');
+
+            try {
+                const db = await openDatabase();
+                log('✅ Database opened successfully', 'success');
+
+                const tx = db.transaction(['stockTransactions'], 'readonly');
+                const store = tx.objectStore('stockTransactions');
+                const allTransactions = await getAllRecords(store);
+
+                log(`📊 Total transactions: ${allTransactions.length}`, 'info');
+
+                const invalidTransactions = allTransactions.filter(t => {
+                    return isNaN(t.materialId) || t.materialId === null || t.materialId === undefined;
+                });
+
+                log(`❌ Invalid transactions found: ${invalidTransactions.length}`, invalidTransactions.length > 0 ? 'error' : 'success');
+
+                if (invalidTransactions.length > 0) {
+                    log('\n📋 Invalid transactions:', 'info');
+                    invalidTransactions.forEach((t, index) => {
+                        log(`  ${index + 1}. ID: ${t.id}, Transaction#: ${t.transactionNumber}, Material ID: ${t.materialId}`, 'error');
+                    });
+                    log('\n💡 Click "Delete Invalid Transactions" to remove these records.', 'info');
+                } else {
+                    log('✅ No invalid transactions found! Your database is clean.', 'success');
+                }
+
+                db.close();
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function deleteInvalidTransactions() {
+            if (!confirm('Are you sure you want to delete all transactions with invalid material IDs? This cannot be undone!')) {
+                log('❌ Deletion cancelled by user', 'info');
+                return;
+            }
+
+            output.innerHTML = '';
+            log('🔍 Opening IndexedDB...', 'info');
+
+            try {
+                const db = await openDatabase();
+                log('✅ Database opened successfully', 'success');
+
+                // First, get all invalid transactions
+                let tx = db.transaction(['stockTransactions'], 'readonly');
+                let store = tx.objectStore('stockTransactions');
+                const allTransactions = await getAllRecords(store);
+
+                const invalidTransactions = allTransactions.filter(t => {
+                    return isNaN(t.materialId) || t.materialId === null || t.materialId === undefined;
+                });
+
+                if (invalidTransactions.length === 0) {
+                    log('ℹ️ No invalid transactions to delete', 'info');
+                    db.close();
+                    return;
+                }
+
+                log(`🗑️ Deleting ${invalidTransactions.length} invalid transactions...`, 'info');
+
+                // Delete them
+                tx = db.transaction(['stockTransactions'], 'readwrite');
+                store = tx.objectStore('stockTransactions');
+
+                let deletedCount = 0;
+                for (const transaction of invalidTransactions) {
+                    await deleteRecord(store, transaction.id);
+                    deletedCount++;
+                    log(`  ✅ Deleted transaction ID: ${transaction.id} (${transaction.transactionNumber})`, 'success');
+                }
+
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+
+                log(`\n✅ Successfully deleted ${deletedCount} invalid transactions!`, 'success');
+                log('🔄 Please refresh your Stock Transactions page to see the changes.', 'info');
+
+                db.close();
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('ConstructionBillingDB', 6);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllRecords(store) {
+            return new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteRecord(store, id) {
+            return new Promise((resolve, reject) => {
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+    </script>
+</body>
+</html>

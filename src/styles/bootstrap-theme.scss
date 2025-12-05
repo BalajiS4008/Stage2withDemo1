@@ -1,0 +1,167 @@
+// ============================================
+// byCodez Custom Bootstrap Theme
+// Based on the dashboard design provided
+// ============================================
+
+// 1. CUSTOM COLOR VARIABLES (from attached image)
+// ============================================
+
+// Primary purple/indigo (sidebar color from image)
+$primary: #5B4DFF;
+$primary-dark: #4A3DD9;
+$primary-light: #7B6FFF;
+
+// Secondary colors
+$secondary: #2D8F77;
+$success: #10B981;
+$info: #3B82F6;
+$warning: #F59E0B;
+$danger: #EF4444;
+
+// Neutral colors (from image)
+$dark: #1E1B4B;        // Dark purple-blue for sidebar
+$light: #F9FAFB;       // Light background
+$white: #FFFFFF;
+$gray-100: #F3F4F6;
+$gray-200: #E5E7EB;
+$gray-300: #D1D5DB;
+$gray-400: #9CA3AF;
+$gray-500: #6B7280;
+$gray-600: #4B5563;
+$gray-700: #374151;
+$gray-800: #1F2937;
+$gray-900: #111827;
+
+// Body colors
+$body-bg: #F9FAFB;
+$body-color: #374151;
+
+// 2. TYPOGRAPHY (Inter font as specified)
+// ============================================
+$font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+$font-family-sans-serif: $font-family-base;
+
+$font-size-base: 0.875rem;  // 14px
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+$headings-font-weight: 600;
+$headings-color: $gray-900;
+
+// 3. SPACING & SIZING
+// ============================================
+$spacer: 1rem;
+$border-radius: 0.5rem;
+$border-radius-sm: 0.375rem;
+$border-radius-lg: 0.75rem;
+$border-radius-xl: 1rem;
+
+// 4. COMPONENT CUSTOMIZATION
+// ============================================
+
+// Cards
+$card-border-radius: $border-radius-lg;
+$card-border-color: $gray-200;
+$card-cap-bg: $white;
+$card-bg: $white;
+$card-spacer-y: 1.25rem;
+$card-spacer-x: 1.25rem;
+
+// Buttons
+$btn-border-radius: $border-radius;
+$btn-font-weight: $font-weight-medium;
+$btn-padding-y: 0.625rem;
+$btn-padding-x: 1.25rem;
+
+// Forms
+$input-border-radius: $border-radius;
+$input-border-color: $gray-300;
+$input-focus-border-color: $primary;
+$input-padding-y: 0.625rem;
+$input-padding-x: 0.875rem;
+
+// Sidebar (custom)
+$sidebar-bg: $dark;
+$sidebar-width: 260px;
+$sidebar-color: rgba(255, 255, 255, 0.8);
+$sidebar-hover-bg: rgba(255, 255, 255, 0.1);
+$sidebar-active-bg: rgba(91, 77, 255, 0.2);
+
+// 5. IMPORT BOOTSTRAP
+// ============================================
+@import 'bootstrap/scss/bootstrap';
+
+// 6. CUSTOM UTILITY CLASSES
+// ============================================
+
+.sidebar {
+  background: linear-gradient(180deg, #1E1B4B 0%, #2D1B69 100%);
+  color: $sidebar-color;
+  width: $sidebar-width;
+  min-height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-nav-link {
+  color: $sidebar-color;
+  padding: 0.75rem 1.25rem;
+  border-radius: $border-radius;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: $sidebar-hover-bg;
+    color: $white;
+  }
+  
+  &.active {
+    background: $sidebar-active-bg;
+    color: $white;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.main-content {
+  margin-left: $sidebar-width;
+  padding: 2rem;
+  min-height: 100vh;
+  background: $body-bg;
+}
+
+.metric-card {
+  background: linear-gradient(135deg, $primary 0%, $primary-light 100%);
+  color: $white;
+  border-radius: $border-radius-xl;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.chart-card {
+  background: $white;
+  border-radius: $border-radius-lg;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid $gray-200;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    
+    &.show {
+      transform: translateX(0);
+    }
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+}
+

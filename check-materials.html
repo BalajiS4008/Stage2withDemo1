@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Materials in Database</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.create {
+            background: #2196F3;
+        }
+        button.create:hover {
+            background: #0b7dda;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .info {
+            color: #2196F3;
+        }
+        .warning {
+            color: #ff9800;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Check Materials in Database</h1>
+        <p>This tool checks if you have materials in your database and can create sample materials if needed.</p>
+
+        <button onclick="checkMaterials()">Check Materials</button>
+        <button class="create" onclick="createSampleMaterials()">Create Sample Materials</button>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function checkMaterials() {
+            output.innerHTML = '';
+            log('🔍 Opening IndexedDB...', 'info');
+
+            try {
+                const db = await openDatabase();
+                log('✅ Database opened successfully', 'success');
+
+                const tx = db.transaction(['materials'], 'readonly');
+                const store = tx.objectStore('materials');
+                const allMaterials = await getAllRecords(store);
+
+                log(`📊 Total materials in database: ${allMaterials.length}`, 'info');
+
+                if (allMaterials.length === 0) {
+                    log('⚠️ No materials found! You need to create materials first.', 'warning');
+                    log('💡 Click "Create Sample Materials" to add some test materials.', 'info');
+                } else {
+                    const activeMaterials = allMaterials.filter(m => m.isActive !== false);
+                    log(`✅ Active materials: ${activeMaterials.length}`, 'success');
+                    log(`❌ Inactive materials: ${allMaterials.length - activeMaterials.length}`, 'error');
+
+                    if (activeMaterials.length === 0) {
+                        log('⚠️ All materials are inactive! You need active materials to create transactions.', 'warning');
+                    } else {
+                        log('\n📋 Materials List:', 'info');
+
+                        let tableHTML = '<table><thead><tr><th>ID</th><th>Code</th><th>Name</th><th>Category</th><th>Unit</th><th>Stock</th><th>Active</th></tr></thead><tbody>';
+
+                        activeMaterials.forEach(m => {
+                            tableHTML += `<tr>
+                                <td>${m.id}</td>
+                                <td>${m.materialCode || '-'}</td>
+                                <td>${m.name}</td>
+                                <td>${m.category || '-'}</td>
+                                <td>${m.unit}</td>
+                                <td>${m.currentStock || 0}</td>
+                                <td>${m.isActive !== false ? '✅' : '❌'}</td>
+                            </tr>`;
+                        });
+
+                        tableHTML += '</tbody></table>';
+                        output.innerHTML += tableHTML;
+                    }
+                }
+
+                db.close();
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function createSampleMaterials() {
+            if (!confirm('Create 5 sample materials? This will help you test the stock transactions feature.')) {
+                return;
+            }
+
+            output.innerHTML = '';
+            log('🔍 Opening IndexedDB...', 'info');
+
+            try {
+                const db = await openDatabase();
+                log('✅ Database opened successfully', 'success');
+
+                // Get user ID (assuming user is logged in)
+                const userTx = db.transaction(['users'], 'readonly');
+                const userStore = userTx.objectStore('users');
+                const users = await getAllRecords(userStore);
+
+                if (users.length === 0) {
+                    log('❌ No users found! Please create a user and login first.', 'error');
+                    db.close();
+                    return;
+                }
+
+                const userId = users[0].id;
+                log(`👤 Using user ID: ${userId}`, 'info');
+
+                const sampleMaterials = [
+                    {
+                        id: Date.now() + 1,
+                        userId: userId,
+                        materialCode: `MAT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-001`,
+                        name: 'Cement Portland',
+                        category: 'Cement',
+                        unit: 'bag',
+                        currentStock: 100,
+                        reorderLevel: 20,
+                        unitCost: 350,
+                        supplier: 'Sample Supplier',
+                        description: 'Portland Cement 50kg bags',
+                        isActive: true,
+                        synced: false,
+                        lastUpdated: new Date().toISOString()
+                    },
+                    {
+                        id: Date.now() + 2,
+                        userId: userId,
+                        materialCode: `MAT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-002`,
+                        name: 'Steel TMT Bars 12mm',
+                        category: 'Steel',
+                        unit: 'kg',
+                        currentStock: 500,
+                        reorderLevel: 100,
+                        unitCost: 55,
+                        supplier: 'Steel Supplier',
+                        description: 'TMT Steel bars 12mm diameter',
+                        isActive: true,
+                        synced: false,
+                        lastUpdated: new Date().toISOString()
+                    },
+                    {
+                        id: Date.now() + 3,
+                        userId: userId,
+                        materialCode: `MAT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-003`,
+                        name: 'Red Bricks',
+                        category: 'Bricks',
+                        unit: 'pieces',
+                        currentStock: 10000,
+                        reorderLevel: 2000,
+                        unitCost: 8,
+                        supplier: 'Brick Manufacturer',
+                        description: 'Standard red clay bricks',
+                        isActive: true,
+                        synced: false,
+                        lastUpdated: new Date().toISOString()
+                    },
+                    {
+                        id: Date.now() + 4,
+                        userId: userId,
+                        materialCode: `MAT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-004`,
+                        name: 'River Sand',
+                        category: 'Sand',
+                        unit: 'm3',
+                        currentStock: 50,
+                        reorderLevel: 10,
+                        unitCost: 1200,
+                        supplier: 'Sand Supplier',
+                        description: 'River sand for construction',
+                        isActive: true,
+                        synced: false,
+                        lastUpdated: new Date().toISOString()
+                    },
+                    {
+                        id: Date.now() + 5,
+                        userId: userId,
+                        materialCode: `MAT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-005`,
+                        name: 'Aggregate 20mm',
+                        category: 'Aggregate',
+                        unit: 'm3',
+                        currentStock: 30,
+                        reorderLevel: 5,
+                        unitCost: 1500,
+                        supplier: 'Aggregate Supplier',
+                        description: '20mm size aggregate for concrete',
+                        isActive: true,
+                        synced: false,
+                        lastUpdated: new Date().toISOString()
+                    }
+                ];
+
+                const tx = db.transaction(['materials'], 'readwrite');
+                const store = tx.objectStore('materials');
+
+                log('📝 Creating sample materials...', 'info');
+
+                for (const material of sampleMaterials) {
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(material);
+                        request.onsuccess = () => {
+                            log(`  ✅ Created: ${material.name} (${material.materialCode})`, 'success');
+                            resolve();
+                        };
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+
+                log(`\n✅ Successfully created ${sampleMaterials.length} sample materials!`, 'success');
+                log('🔄 Please refresh your Stock Transactions page.', 'info');
+
+                db.close();
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('ConstructionBillingDB', 6);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllRecords(store) {
+            return new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+    </script>
+</body>
+</html>
