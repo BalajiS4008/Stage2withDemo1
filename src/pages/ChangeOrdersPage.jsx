@@ -27,6 +27,7 @@ import {
   formatCurrency
 } from '../utils/changeOrderUtils';
 import { deleteChangeOrder } from '../db/dexieDB';
+import ChangeOrderFormModal from '../components/changeOrders/ChangeOrderFormModal';
 
 const ChangeOrdersPage = () => {
   const { data, user } = useData();
@@ -524,7 +525,13 @@ const ChangeOrdersPage = () => {
         </div>
       )}
 
-      {/* TODO: Add Change Order Form Modal */}
+      {/* Change Order Form Modal */}
+      <ChangeOrderFormModal
+        show={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        changeOrder={selectedChangeOrder}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   );
 };
